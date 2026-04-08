@@ -1,0 +1,62 @@
+{
+  "info": {
+    "name": "AI Legal Action Agent API",
+    "description": "Postman Test Collection for the FastAPI endpoints of LexAgent.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "User Signup",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "url": {"raw": "http://127.0.0.1:8000/auth/signup", "host": ["http://127.0.0.1:8000"], "path": ["auth", "signup"]},
+            "body": {"mode": "raw", "raw": "{\"email\": \"postman@lexagent.ai\", \"password\": \"secure123\"}"}
+          }
+        },
+        {
+          "name": "User Login",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "url": {"raw": "http://127.0.0.1:8000/auth/login", "host": ["http://127.0.0.1:8000"], "path": ["auth", "login"]},
+            "body": {"mode": "raw", "raw": "{\"email\": \"postman@lexagent.ai\", \"password\": \"secure123\"}"}
+          }
+        }
+      ]
+    },
+    {
+      "name": "Documents & AI",
+      "item": [
+        {
+          "name": "Fetch Approval Queue",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {"raw": "http://127.0.0.1:8000/api/queue", "host": ["http://127.0.0.1:8000"], "path": ["api", "queue"]}
+          }
+        },
+        {
+          "name": "Post AI Action Decision",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {"mode": "formdata", "formdata": [{"key": "action", "value": "approve", "type": "text"}]},
+            "url": {"raw": "http://127.0.0.1:8000/api/action/1", "host": ["http://127.0.0.1:8000"], "path": ["api", "action", "1"]}
+          }
+        },
+        {
+          "name": "Fetch Dashboard Stats",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {"raw": "http://127.0.0.1:8000/api/stats", "host": ["http://127.0.0.1:8000"], "path": ["api", "stats"]}
+          }
+        }
+      ]
+    }
+  ]
+}
