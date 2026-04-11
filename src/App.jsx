@@ -8,6 +8,8 @@ import Timeline from './components/dashboard/Timeline';
 import UploadSection from './components/features/UploadSection';
 import AnalysisPanel from './components/features/AnalysisPanel';
 import MultiAgentChat from './components/features/MultiAgentChat';
+import DocumentHistory from './components/features/DocumentHistory';
+import ClauseLibrary from './components/features/ClauseLibrary';
 import LandingPage from './components/layout/LandingPage';
 import AuthPage from './components/auth/AuthPage';
 import { useAuth } from './context/AuthContext';
@@ -59,7 +61,7 @@ function App() {
             key="upload"
             className="h-full"
           >
-            <UploadSection />
+            <UploadSection onNavigateToQueue={() => setActiveTab('analysis')} />
           </motion.div>
         );
       case 'analysis':
@@ -72,6 +74,29 @@ function App() {
             className="h-full"
           >
             <AnalysisPanel />
+          </motion.div>
+        );
+      case 'history':
+        return (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.98 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.98 }}
+            key="history"
+            className="h-full"
+          >
+            <DocumentHistory />
+          </motion.div>
+        );
+      case 'clauses':
+        return (
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            className="h-full"
+          >
+            <ClauseLibrary />
           </motion.div>
         );
       case 'chat':

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Home, FileText, CheckSquare, MessageSquare, Settings, Globe, X } from 'lucide-react';
+import { Home, FileText, CheckSquare, MessageSquare, Settings, Globe, X, History, Library } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const Sidebar = ({ activeTab, setActiveTab }) => {
@@ -9,6 +9,8 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
     { id: 'dashboard', icon: Home, label: 'Dashboard' },
     { id: 'upload', icon: FileText, label: 'Documents' },
     { id: 'analysis', icon: CheckSquare, label: 'Approval Queue' },
+    { id: 'history', icon: History, label: 'Document History' },
+    { id: 'clauses', icon: Library, label: 'Clause Library' },
     { id: 'chat', icon: MessageSquare, label: 'Agent Chat' },
     { id: 'website', icon: Globe, label: 'Website Homepage' },
   ];

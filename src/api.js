@@ -1,8 +1,9 @@
 import axios from 'axios';
 
 // Base instance — reads from env var in production, falls back to localhost for dev
+const configuredUrl = import.meta.env.VITE_API_URL;
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8000',
+  baseURL: configuredUrl !== undefined && configuredUrl !== false ? configuredUrl : 'http://localhost:8000',
 });
 
 // Attach JWT token to every request if present

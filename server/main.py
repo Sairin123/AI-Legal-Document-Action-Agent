@@ -21,6 +21,8 @@ Endpoints:
 
 from fastapi import FastAPI, Depends, HTTPException, UploadFile, File, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from contextlib import asynccontextmanager
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
@@ -44,9 +46,38 @@ async def lifespan(app: FastAPI):
         print(f"Seed skipped: {e}")
     yield
 
-
 # ── App setup ────────────────────────────────────────────────────────────────
 app = FastAPI(title="LexAgent API", version="2.0.0", lifespan=lifespan)
+
+@app.post("/api/documents/{doc_id}/redline")
+def get_doc_redline(
+    doc_id: int,
+    db: Session = Depends(database.get_db),
+    current_user: database.User = Depends(auth.get_current_user),
+):
+    doc = db.query(database.Document).filter(
+        database.Document.id == doc_id,
+        database.Document.owner_id == current_user.id
+    ).first()
+    if not doc:
+        raise HTTPException(status_code=404, detail="Doc not found")
+        
+    clauses = db.query(database.Clause).filter(database.Clause.document_id == doc.id).all()
+    # Serialize clauses for the agent
+    clause_data = [{
+        "title": c.title,
+        "riskLevel": c.risk_level,
+        "type": c.type,
+        "aiAction": c.ai_action
+    } for c in clauses]
+    
+    from agent_manager import redline_document
+    redlined = redline_document(doc.extracted_text or "", clause_data)
+    
+    return {"redlined_text": redlined}
+
+
+# ── Middleware setup ──────────────────────────────────────────────────────────
 
 # Allow all origins — restrict this to your Vercel domain once deployed
 ALLOWED_ORIGINS = os.environ.get("ALLOWED_ORIGINS", "*").split(",")
@@ -121,6 +152,29 @@ async def upload_document(
 ):
     content = await file.read()
     text = extract_text(content, file.filename)
+
+    # 🌐 AUTO-TRANSLATE FOREIGN DOCUMENTS TO ENGLISH
+    try:
+        if text.strip():
+            from langdetect import detect
+            from deep_translator import GoogleTranslator
+            
+            # Detect language of the first 500 characters
+            snippet = text[:500]
+            detected_lang = detect(snippet)
+            
+            if detected_lang != 'en':
+                gt = GoogleTranslator(source='auto', target='en')
+                chunks = [text[i:i+4000] for i in range(0, len(text), 4000)]
+                translated_text = ""
+                for chunk in chunks:
+                    translated_text += gt.translate(chunk) + " "
+                
+                # Prepend a note so reviewer knows it was auto-translated
+                text = f"[AUTO-TRANSLATED FROM {detected_lang.upper()} TO ENGLISH]\n\n" + translated_text
+    except Exception as e:
+        print(f"Auto-translation failed during upload: {e}")
+
     doc_type = classify_doc_type(text)
 
     doc = database.Document(
@@ -234,7 +288,131 @@ def get_approval_queue(
     return result
 
 
+# ── Document history ────────────────────────────────────────────────────────────
+@app.get("/api/history")
+def get_document_history(
+    db: Session = Depends(database.get_db),
+    current_user: database.User = Depends(auth.get_current_user),
+):
+    docs = (
+        db.query(database.Document)
+        .filter(database.Document.owner_id == current_user.id)
+        .order_by(database.Document.uploaded_at.desc())
+        .all()
+    )
+
+    result = []
+    for doc in docs:
+        result.append({
+            "id": doc.id,
+            "name": doc.filename,
+            "doc_type": doc.doc_type,
+            "status": doc.status,
+            "time": doc.uploaded_at.strftime("%b %d, %Y %H:%M"),
+            "aiSummary": doc.ai_summary or "Analysis pending"
+        })
+    return result
+
+
+    return result
+
+
+@app.get("/api/history/{doc_id}")
+def get_document_details(
+    doc_id: int,
+    db: Session = Depends(database.get_db),
+    current_user: database.User = Depends(auth.get_current_user),
+):
+    doc = db.query(database.Document).filter(
+        database.Document.id == doc_id,
+        database.Document.owner_id == current_user.id
+    ).first()
+    
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document not found")
+        
+    return {
+        "id": doc.id,
+        "name": doc.filename,
+        "doc_type": doc.doc_type,
+        "status": doc.status,
+        "time": doc.uploaded_at.strftime("%b %d, %Y %H:%M"),
+        "aiSummary": doc.ai_summary,
+        "extracted_text": doc.extracted_text,
+        "clauses": [
+            {
+                "title": c.title,
+                "riskLevel": c.risk_level,
+                "type": c.type,
+                "content": c.content,
+                "aiAction": c.ai_action,
+            }
+            for c in doc.clauses
+        ]
+    }
+
+
+@app.delete("/api/history/{doc_id}")
+def delete_document(
+    doc_id: int,
+    db: Session = Depends(database.get_db),
+    current_user: database.User = Depends(auth.get_current_user),
+):
+    doc = db.query(database.Document).filter(
+        database.Document.id == doc_id,
+        database.Document.owner_id == current_user.id
+    ).first()
+    
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document not found")
+        
+    db.delete(doc)
+    db.commit()
+    return {"status": "success", "message": "Document deleted"}
+
+
 # ── Register approval action ─────────────────────────────────────────────────
+@app.post("/api/documents/{doc_id}/translate")
+def translate_document(
+    doc_id: int,
+    body: dict,
+    db: Session = Depends(database.get_db),
+    current_user: database.User = Depends(auth.get_current_user),
+):
+    target_lang = body.get("target_language", "english")
+    doc = db.query(database.Document).filter(
+        database.Document.id == doc_id,
+        database.Document.owner_id == current_user.id,
+    ).first()
+    if not doc or not doc.extracted_text:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail="Document not found or empty")
+
+    from deep_translator import GoogleTranslator
+    lang_map = {
+        "spanish": "es", "french": "fr", "german": "de", "mandarin": "zh-CN",
+        "hindi": "hi", "arabic": "ar", "japanese": "ja", "english": "en",
+        "bengali": "bn", "telugu": "te", "telegu": "te", "malayalam": "ml", "tamil": "ta",
+        "kannada": "kn", "marathi": "mr", "assamese": "as", "gujarati": "gu",
+        "gujrati": "gu", "odia": "or", "sanskrit": "sa", "urdu": "ur"
+    }
+    lang_code = lang_map.get(target_lang.lower(), target_lang.lower())
+    
+    text = doc.extracted_text
+    translated_text = ""
+    try:
+        gt = GoogleTranslator(source='auto', target=lang_code)
+        # Google Translate handles up to 5k chars. Basic chunking:
+        chunks = [text[i:i+4000] for i in range(0, len(text), 4000)]
+        for chunk in chunks:
+            translated_text += gt.translate(chunk) + " "
+    except Exception as e:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=500, detail=f"Translation failed: {str(e)}")
+        
+    return {"status": "success", "translated_text": translated_text}
+
+
 @app.post("/api/action/{doc_id}")
 def register_action(
     doc_id: int,
@@ -325,7 +503,32 @@ def get_dashboard_stats(
     }
 
 
-# ── Chart data ────────────────────────────────────────────────────────────────
+@app.get("/api/clauses")
+def get_clause_library(
+    db: Session = Depends(database.get_db),
+    current_user: database.User = Depends(auth.get_current_user),
+):
+    clauses = (
+        db.query(database.Clause)
+        .join(database.Document)
+        .filter(database.Document.owner_id == current_user.id)
+        .order_by(database.Document.uploaded_at.desc())
+        .all()
+    )
+    
+    return [{
+        "id": c.id,
+        "title": c.title,
+        "content": c.content,
+        "risk_level": c.risk_level,
+        "type": c.type,
+        "ai_action": c.ai_action,
+        "doc_name": c.document.filename,
+        "doc_id": c.document_id
+    } for c in clauses]
+
+
+# ── Charts & Analytics ───────────────────────────────────────────────────────
 @app.get("/api/charts")
 def get_chart_data(
     db: Session = Depends(database.get_db),
@@ -443,3 +646,26 @@ def chat_endpoint(
          "chat", None, current_user.id)
 
     return {"response": response_text}
+
+
+# ── Serve Frontend SPA ────────────────────────────────────────────────────────
+dist_path = os.path.join(os.path.dirname(__file__), "..", "dist")
+
+if os.path.isdir(os.path.join(dist_path, "assets")):
+    app.mount("/assets", StaticFiles(directory=os.path.join(dist_path, "assets")), name="assets")
+
+@app.get("/{full_path:path}")
+async def serve_vue_app(full_path: str):
+    # Ignore api endpoints explicitly just in case
+    if full_path.startswith("api/") or full_path.startswith("auth/"):
+        raise HTTPException(status_code=404, detail="Not Found")
+        
+    requested_file = os.path.join(dist_path, full_path)
+    if os.path.isfile(requested_file) and full_path != "":
+        return FileResponse(requested_file)
+    
+    # Default to SPA routing
+    index_file = os.path.join(dist_path, "index.html")
+    if os.path.isfile(index_file):
+        return FileResponse(index_file)
+    return {"status": "Frontend not built yet"}
