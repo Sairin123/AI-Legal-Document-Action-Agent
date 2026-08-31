@@ -1,12 +1,11 @@
 import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { UploadCloud, File, CheckCircle, Loader, Camera, X, ImageIcon } from 'lucide-react';
-import api, { apiPost } from '../../api';
+import { apiPost } from '../../api';
 
-const UploadSection = () => {
+const UploadSection = ({ onNavigateToQueue }) => {
   const [isDragging, setIsDragging] = useState(false);
   const [status, setStatus] = useState('idle'); // idle, uploading, analyzing, done
-  const [resultId, setResultId] = useState(null);
   
   // Camera State
   const [isCameraOpen, setIsCameraOpen] = useState(false);
@@ -123,7 +122,6 @@ const UploadSection = () => {
       setStatus('analyzing');
       await apiPost(`/analyze/${docId}`);
       
-      setResultId(docId);
       setStatus('done');
       
       // Auto-navigate to queue if the user requested it via capture

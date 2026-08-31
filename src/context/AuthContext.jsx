@@ -1,7 +1,6 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import api from '../api';
-
-const AuthContext = createContext(null);
+import { AuthContext } from './AuthContextObject';
 
 /** Decode a JWT payload without a library */
 function decodeJwt(token) {
@@ -79,8 +78,3 @@ export function AuthProvider({ children }) {
   );
 }
 
-export function useAuth() {
-  const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error('useAuth must be used inside <AuthProvider>');
-  return ctx;
-}

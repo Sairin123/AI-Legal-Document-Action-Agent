@@ -314,9 +314,6 @@ def get_document_history(
     return result
 
 
-    return result
-
-
 @app.get("/api/history/{doc_id}")
 def get_document_details(
     doc_id: int,

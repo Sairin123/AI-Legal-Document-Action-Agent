@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle2, AlertCircle, FileSignature, Send, UploadCloud, MessageSquare, RefreshCw } from 'lucide-react';
 import { apiGet } from '../../api';
@@ -17,15 +17,26 @@ const Timeline = () => {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchTimeline = () => {
+  const fetchTimeline = useCallback(() => {
     setLoading(true);
     apiGet('/timeline?limit=8')
       .then(res => setEvents(res.data))
       .catch(err => console.error('Timeline fetch error:', err))
       .finally(() => setLoading(false));
-  };
+  }, []);
 
-  useEffect(() => { fetchTimeline(); }, []);
+  useEffect(() => {
+    let ignore = false;
+    apiGet('/timeline?limit=8')
+      .then(res => {
+        if (!ignore) setEvents(res.data);
+      })
+      .catch(err => console.error('Timeline fetch error:', err))
+      .finally(() => {
+        if (!ignore) setLoading(false);
+      });
+    return () => { ignore = true; };
+  }, []);
 
   return (
     <motion.div

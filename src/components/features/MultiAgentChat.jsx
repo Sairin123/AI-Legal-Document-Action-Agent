@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Send, Bot, ShieldAlert, Zap, User, Sparkles, Globe, Mic, MicOff, Volume2 } from 'lucide-react';
 import { apiPost } from '../../api';
@@ -44,7 +44,7 @@ const MultiAgentChat = () => {
   const [messages, setMessages] = useState(mockConvos['action']);
   const [input, setInput] = useState('');
   const [isListening, setIsListening] = useState(false);
-  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [, setIsSpeaking] = useState(false);
   
   const languages = [
     'English', 'Spanish', 'French', 'German', 'Mandarin', 'Hindi', 'Arabic', 'Japanese',
@@ -119,7 +119,7 @@ const MultiAgentChat = () => {
         updated[updated.length - 1] = { sender: 'bot', text: res.data.response };
         return updated;
       });
-    } catch (err) {
+    } catch {
       setMessages(prev => {
         const updated = [...prev];
         updated[updated.length - 1] = { sender: 'bot', text: 'Sorry, I could not reach the backend. Ensure the server is running.' };

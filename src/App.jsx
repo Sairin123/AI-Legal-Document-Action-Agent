@@ -12,7 +12,7 @@ import DocumentHistory from './components/features/DocumentHistory';
 import ClauseLibrary from './components/features/ClauseLibrary';
 import LandingPage from './components/layout/LandingPage';
 import AuthPage from './components/auth/AuthPage';
-import { useAuth } from './context/AuthContext';
+import { useAuth } from './context/useAuth';
 
 function App() {
   const { isAuthenticated } = useAuth();

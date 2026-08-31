@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ShieldAlert, CheckCircle, Search, FileText, XCircle, ChevronRight, Check, Globe, Edit3, Share2, FileSignature } from 'lucide-react';
-import api, { apiGet, apiPost } from '../../api';
+import { apiGet, apiPost } from '../../api';
 
 const AnalysisPanel = () => {
   const [queue, setQueue] = useState([]);

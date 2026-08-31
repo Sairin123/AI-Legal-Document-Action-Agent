@@ -23,3 +23,15 @@ dist-ssr
 *.sln
 *.sw?
 .vercel
+
+# Python & Environment
+venv/
+*.db
+__pycache__/
+*.pyc
+
+# Extracted & Large Artifacts
+*.zip
+nlp_agent_extracted/
+gitignore.txt
+vercelignore.txt

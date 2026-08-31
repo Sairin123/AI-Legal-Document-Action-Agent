@@ -2,9 +2,23 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Search, Bell, Mic, LogOut, User as UserIcon, Settings as SettingsIcon, CreditCard } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
+const getUserInfoFromToken = () => {
+  const token = localStorage.getItem('token');
+  if (token) {
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      if (payload.sub) {
+        return { email: payload.sub, initial: payload.sub[0].toUpperCase() };
+      }
+    } catch { /* ignore */ }
+  }
+  return { email: 'admin@lexagent.ai', initial: 'A' };
+};
+
 const Header = () => {
-  const [userInitial, setUserInitial] = useState('A');
-  const [userEmail, setUserEmail] = useState('admin@lexagent.ai');
+  const [userInfo] = useState(getUserInfoFromToken);
+  const userInitial = userInfo.initial;
+  const userEmail = userInfo.email;
   const [searchQuery, setSearchQuery] = useState('');
   const [isListening, setIsListening] = useState(false);
   
@@ -14,19 +28,6 @@ const Header = () => {
   // References for click-outside to close dropdowns
   const notifRef = useRef();
   const profileRef = useRef();
-
-  useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      try {
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        if (payload.sub) {
-          setUserEmail(payload.sub);
-          setUserInitial(payload.sub[0].toUpperCase());
-        }
-      } catch (e) { /* ignore */ }
-    }
-  }, []);
 
   // Close dropdowns when clicking outside
   useEffect(() => {

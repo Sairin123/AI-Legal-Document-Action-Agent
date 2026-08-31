@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { FileCheck, AlertTriangle, Clock, Activity } from 'lucide-react';
-import api, { apiGet } from '../../api';
+import { apiGet } from '../../api';
 
 const container = {
   hidden: { opacity: 0 },
